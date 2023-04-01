@@ -21,7 +21,7 @@ fun Context.findActivity(): ComponentActivity {
     throw IllegalStateException("no activity")
 }
 
-val injector: AppComponent
+val appComponent: AppComponent
     @Composable
     get() = LocalContext.current.findActivity().app.appComponent
 

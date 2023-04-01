@@ -1,5 +1,6 @@
 package com.danilkha.composeapptemplate.di
 
+import com.danilkha.composeapptemplate.view.start.StartViewModel
 import dagger.Component
 import javax.inject.Singleton
 
@@ -9,5 +10,5 @@ import javax.inject.Singleton
 @Singleton
 interface AppComponent{
 
-    // fun appViewModel(): AppViewModel
+    fun startViewModel(): StartViewModel
 }
