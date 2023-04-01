@@ -1,4 +1,4 @@
-package com.danilkha.composeapptemplate
+package com.danilkha.composeapptemplate.entrypoints
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,7 +10,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposeAppTemplateTheme {
-
+                AppNavHost()
             }
         }
     }
