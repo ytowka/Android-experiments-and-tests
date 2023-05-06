@@ -1,5 +1,6 @@
 package com.danilkha.composeapptemplate.view.cropper
 
+import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -7,22 +8,21 @@ import kotlin.math.max
 
 @Stable
 class Viewport(
-    windowSize: Size,
     imageSize: Size,
-    center: Offset = Offset(0f,0f)
+
+    offset: Offset = Offset(0f,0f),
+    clippingRect: ClippingRect = ClippingRect(Size.Zero, Offset.Zero),
+    scale: Float = 1f,
 ) {
 
+    @WindowDimension var clippingRect: ClippingRect by mutableStateOf(clippingRect, structuralEqualityPolicy())
 
-    @WindowDimension var windowSize: Size by mutableStateOf(windowSize, structuralEqualityPolicy())
+    @ViewportDimension var imageSize: Size by mutableStateOf(imageSize, structuralEqualityPolicy())
 
-    @WindowDimension var imageSize: Size by mutableStateOf(imageSize, structuralEqualityPolicy())
-
-    @ViewportDimension var offset: Offset by mutableStateOf(center, structuralEqualityPolicy())
+    @ViewportDimension var offset: Offset by mutableStateOf(offset, structuralEqualityPolicy())
 
 
-    var scale: Float by mutableStateOf(1f)
-
-    var clippingRectRatio: Float by mutableStateOf(1.5f)
+    var scale: Float by mutableStateOf(scale)
 
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
@@ -37,38 +37,36 @@ class Viewport(
 
     val minScale: Float
         get(){
-            val clippingRectSize = clippingRect().first;
+            val clippingRectSize = clippingRect.size;
             return max(
                 clippingRectSize.width / imageSize.width,
                 clippingRectSize.height / imageSize.height,
             )
         }
 
-    val maxScale: Float = 5f
+    val maxScale: Float = 2.5f
 
     fun Offset.rectLimited(): Offset{
-        var (clipSize, clipOffset) = clippingRect();
+        var (clipSize, clipOffset) = clippingRect;
         clipSize = clipSize.toViewportSize()
         clipOffset = clipOffset.toLocalOffset(this)
 
         var newX = x
         var newY = y
 
-        if(clipOffset.x < 0){
+        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width
+        if(clipOffset.x < 0) {
             newX = x + clipOffset.x
+        }else if(rightOverDrag > 0){
+            newX = x + rightOverDrag
         }
 
+        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height
         if(clipOffset.y < 0){
             newY = y + clipOffset.y
+        }else if(bottomOverDrag > 0){
+            newY = y + bottomOverDrag
         }
-
-        /*if(clipOffset.x + clipSize.width - imageSize.width * scale > 0){
-            newX = x + clipOffset.x + clipSize.width - imageSize.width * scale
-        }
-
-        if(clipOffset.y + clipSize.height - imageSize.height * scale > 0){
-            newY = y + clipOffset.y + clipSize.height - imageSize.height * scale
-        }*/
 
         return Offset(newX, newY)
     }
@@ -108,56 +106,23 @@ class Viewport(
             height = height * scale,
         )
     }
-
-    @WindowDimension
-    fun clippingRect(): Pair<Size, Offset>{
-        val windowRatio = windowSize.width / windowSize.height
-        val size = if(clippingRectRatio > windowRatio){
-            val width = windowSize.width - CLIPPING_RECT_PADDING*2
-            val height = width / clippingRectRatio
-            Size(width, height)
-        }else{
-            val height = windowSize.height - CLIPPING_RECT_PADDING*2
-            val width = height * clippingRectRatio
-            Size(width, height)
-        }
-        val x = windowSize.width / 2 - size.width / 2
-        val y = windowSize.height / 2 - size.height / 2
-        val offset = Offset(x,y)
-        return size to offset
-    }
-
-    companion object{
-        const val CLIPPING_RECT_PADDING = 150
-    }
 }
 
 @Composable
-fun rememberViewport(
-    windowSize: Size,
-): Viewport{
-    val viewport = remember {
-        Viewport(
-            windowSize = windowSize,
-            imageSize = windowSize,
-        )
-    }
-    LaunchedEffect(windowSize){
-        viewport.windowSize = windowSize
-    }
+fun rememberViewport(): Viewport{
+    val viewport = remember { Viewport(imageSize = Size.Zero,) }
     return viewport
 }
-
-private fun Offset.coerceIn(min: Offset, max: Offset): Offset{
-    return Offset(x.coerceIn(min.x, max.x), y.coerceIn(min.y, max.y))
-}
-
-private operator fun Size.plus(size: Size): Size {
+operator fun Size.plus(size: Size): Size {
     return Size(width + size.width, height + size.height)
 }
 
-private operator fun Offset.plus(size: Size): Offset{
+operator fun Offset.plus(size: Size): Offset{
     return Offset(x + size.width, y + size.height)
+}
+
+operator fun Offset.minus(size: Size): Offset{
+    return Offset(x - size.width, y - size.height)
 }
 
 annotation class WindowDimension

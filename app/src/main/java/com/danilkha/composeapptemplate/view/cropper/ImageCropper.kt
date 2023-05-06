@@ -22,7 +22,8 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ImageCropper(
-    image: String
+    image: String,
+    clipRatio: Float = 1.5f
 ) {
     val imageBitmap by rememberImageBitmap(image)
 
@@ -30,12 +31,13 @@ fun ImageCropper(
         val windowSize = with(LocalDensity.current) {
             Size(maxWidth.toPx(), maxHeight.toPx())
         }
-        val viewport = rememberViewport(windowSize)
+        val viewport = rememberViewport()
 
-        LaunchedEffect(imageBitmap){
+        LaunchedEffect(imageBitmap, windowSize){
             imageBitmap?.let {
                 viewport.imageSize = it.size
             }
+            viewport.clippingRect = ClippingRect.clippingRect(windowSize,clipRatio)
         }
 
         Canvas(
@@ -48,6 +50,7 @@ fun ImageCropper(
                     }
                 },
         ){
+            drawRect(color = Color.Gray)
             with(viewport){
                 imageBitmap?.let {
                     drawImage(
@@ -57,16 +60,16 @@ fun ImageCropper(
                     )
                 }
             }
-            val clippingRect = viewport.clippingRect()
+            val clippingRect = viewport.clippingRect
             clipRect(
-                clippingRect.second.x,
-                clippingRect.second.y,
-                clippingRect.second.x + clippingRect.first.width,
-                clippingRect.second.y + clippingRect.first.height,
+                clippingRect.offset.x,
+                clippingRect.offset.y,
+                clippingRect.offset.x + clippingRect.size.width,
+                clippingRect.offset.y + clippingRect.size.height,
                 clipOp = ClipOp.Difference
             ) {
                 drawRect(
-                    color = Color.Gray.copy(alpha = 0.6f),
+                    color = Color.Black.copy(alpha = 0.6f),
                 )
             }
         }
@@ -78,8 +81,11 @@ fun ImageCropper(
 fun ViewportInfo(viewport: Viewport){
     with(viewport){
         Text(buildString {
-            appendLine("clip: ${clippingRect().second}")
-            appendLine("viewport clip: ${clippingRect().second.toViewportOffset()}")
+            appendLine("clip: ${clippingRect.offset}")
+            appendLine()
+            appendLine("viewport clip: ${clippingRect.offset.toViewportOffset()}")
+            appendLine("viewport clip br: ${(clippingRect.offset + clippingRect.size).toViewportOffset() - imageSize} ")
+            appendLine()
             appendLine("offset: $offset")
             appendLine("scale: $scale")
         })
