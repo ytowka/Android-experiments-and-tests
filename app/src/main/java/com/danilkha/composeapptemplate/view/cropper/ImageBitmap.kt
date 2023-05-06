@@ -14,8 +14,8 @@ import coil.request.SuccessResult
 import coil.size.Precision
 
 @Composable
-fun rememberImageBitmap(uri: String): State<ImageBitmap?> {
-    var rememberedBitmap = remember(uri){ mutableStateOf<ImageBitmap?>(null) }
+fun rememberImageBitmap(uri: String): State<SizedImageBitmap?> {
+    val rememberedBitmap = remember(uri){ mutableStateOf<SizedImageBitmap?>(null) }
 
     val request = ImageRequest.Builder(LocalContext.current)
         .data(uri)
@@ -30,7 +30,7 @@ fun rememberImageBitmap(uri: String): State<ImageBitmap?> {
             }
             is SuccessResult -> {
                 val bitmapDrawable = (loaderResult.drawable as BitmapDrawable)
-                rememberedBitmap.value = bitmapDrawable.bitmap.asImageBitmap()
+
 
                 val size = with(bitmapDrawable) {
                     Size(
@@ -38,6 +38,11 @@ fun rememberImageBitmap(uri: String): State<ImageBitmap?> {
                         height = bitmap.height.toFloat(),
                     )
                 }
+
+                rememberedBitmap.value = SizedImageBitmap(
+                    bitmapDrawable.bitmap.asImageBitmap(),
+                    size
+                )
                 /*bitmapDrawableSize = size
                 storedSize = st.value?.imageToCrop?.size
                 dataSource = loaderResult.dataSource
