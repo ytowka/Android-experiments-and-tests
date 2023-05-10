@@ -1,10 +1,11 @@
 package com.danilkha.composeapptemplate.view.cropper
 
-import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.sin
 
 @Stable
 class Viewport(
@@ -19,20 +20,31 @@ class Viewport(
 
     @ViewportDimension var imageSize: Size by mutableStateOf(imageSize, structuralEqualityPolicy())
 
-    @ViewportDimension var offset: Offset by mutableStateOf(offset, structuralEqualityPolicy())
-
+    @ViewportDimension var center: Offset by mutableStateOf(offset, structuralEqualityPolicy())
 
     var scale: Float by mutableStateOf(scale)
+
+    var angle: Float by mutableStateOf(0f)
+
+    val imageTopLeft: Offset
+        get() = Offset(
+            x = -imageSize.width/2,
+            y = -imageSize.height/2,
+        )
 
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
         this.scale = (this.scale * scale).coerceIn(minScale, maxScale)
         val newViewportAnchor = anchor.toViewportOffset()
-        offset = (offset - (viewportAnchor - newViewportAnchor)).rectLimited()
+        center = (center - (viewportAnchor - newViewportAnchor)).rectLimited()
+    }
+
+    fun rotate(angle: Float){
+        this.angle += angle
     }
 
     fun translate(@WindowDimension delta: Offset){
-        offset = (offset + delta / scale).rectLimited()
+        center = (center + delta / scale).rectLimited()
     }
 
     val minScale: Float
@@ -54,16 +66,18 @@ class Viewport(
         var newX = x
         var newY = y
 
-        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width
-        if(clipOffset.x < 0) {
-            newX = x + clipOffset.x
+        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width / 2
+        val leftOverDrag = imageSize.width / 2 + clipOffset.x
+        if(leftOverDrag < 0) {
+            newX = x + leftOverDrag
         }else if(rightOverDrag > 0){
             newX = x + rightOverDrag
         }
 
-        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height
-        if(clipOffset.y < 0){
-            newY = y + clipOffset.y
+        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height / 2
+        val topOverDrag = imageSize.height / 2 + clipOffset.y
+        if(topOverDrag< 0){
+            newY = y + topOverDrag
         }else if(bottomOverDrag > 0){
             newY = y + bottomOverDrag
         }
@@ -74,23 +88,25 @@ class Viewport(
 
     fun Offset.toViewportOffset(): Offset{
         return Offset(
-            x = x / scale - offset.x,
-            y = y / scale - offset.y
-        )
+            x = x / scale - center.x,
+            y = y / scale - center.y,
+        ).rotate(angle)
     }
 
     fun Offset.toWindowOffset(): Offset{
-        return Offset(
-            x = (x + offset.x) * scale,
-            y = (y + offset.y) * scale,
-        )
+        return rotate(-angle).run {
+            Offset(
+                x = (x + center.x) * scale,
+                y = (y + center.y) * scale,
+            )
+        }
     }
 
     fun Offset.toLocalOffset(offset: Offset): Offset{
         return Offset(
             x = x / scale - offset.x,
             y = y / scale - offset.y
-        )
+        ).rotate(angle)
     }
 
     fun Size.toViewportSize(): Size{
@@ -125,5 +141,9 @@ operator fun Offset.minus(size: Size): Offset{
     return Offset(x - size.width, y - size.height)
 }
 
+fun Offset.rotate(/*rad*/ angle: Float): Offset = Offset(
+    x = x * cos(angle) - y * sin(angle),
+    y = x * sin(angle) + y * cos(angle),
+)
 annotation class WindowDimension
 annotation class ViewportDimension
