@@ -7,6 +7,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
+import kotlin.math.absoluteValue
+import kotlin.math.cos
+import kotlin.math.sin
 
 data class ClippingRect(val size: Size, val offset: Offset) {
 
@@ -23,7 +26,24 @@ data class ClippingRect(val size: Size, val offset: Offset) {
         Rect(offset, size)
     }
 
-
+    fun circumscribedRect(angle: Float): ClippingRect{
+        val newSize = with(size){
+            val newWidth = width * cos(angle).absoluteValue + height* sin(angle).absoluteValue
+            val newHeight = height * cos(angle).absoluteValue + width* sin(angle).absoluteValue
+            Size(newWidth, newHeight)
+        }
+        val newOffset = with(Offset.Zero - size/2f){
+            val topLeft = rotate(-angle)
+            val topRight = this.plus(Offset(size.width, 0f)).rotate(-angle)
+            val bottomLeft = this.plus(Offset(0f, size.height)).rotate(-angle)
+            val bottomRight = this.plus(size).rotate(-angle)
+            Offset(
+                listOf(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x).min(),
+                listOf(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y).min(),
+            )
+        }
+        return ClippingRect(newSize, offset+newOffset+size/2f);
+    }
     companion object{
         fun clippingRect(windowSize: Size, ratio: Float): ClippingRect{
             val windowRatio = windowSize.width / windowSize.height
@@ -42,6 +62,6 @@ data class ClippingRect(val size: Size, val offset: Offset) {
             return ClippingRect(size, offset)
         }
 
-        const val CLIPPING_RECT_PADDING = 150
+        const val CLIPPING_RECT_PADDING = 250
     }
 }

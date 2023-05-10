@@ -3,8 +3,10 @@ package com.danilkha.composeapptemplate.view.cropper
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sin
 
 @Stable
@@ -22,9 +24,31 @@ class Viewport(
 
     @ViewportDimension var center: Offset by mutableStateOf(offset, structuralEqualityPolicy())
 
-    @WindowDimension val windowOffset: Offset
-        get() = Offset(-imageSize.toWindowSize().width/2,
-            -imageSize.toWindowSize().height/2)
+    @WindowDimension val imageTopLeft
+        get() = Offset(
+            -imageSize.width/2,
+            -imageSize.height/2
+        )
+
+    val rotatedClipRect: ClippingRect
+        get() {
+            val size = with(clippingRect.size.toViewportSize()){
+                val newWidth = width * cos(angle).absoluteValue + height*sin(angle).absoluteValue
+                val newHeight = height * cos(angle).absoluteValue + width* sin(angle).absoluteValue
+                Size(newWidth, newHeight)
+            }
+            val offset = with(clippingRect.offset.toViewportOffset()){
+                val topLeft = rotate(-angle)
+                val topRight = this.plus(Offset(clippingRect.size.width, 0f)).rotate(-angle)
+                val bottomLeft = this.plus(Offset(0f, clippingRect.size.height)).rotate(-angle)
+                val bottomRight = this.plus(clippingRect.size).rotate(-angle)
+                Offset(
+                    listOf(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x).min(),
+                    listOf(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y).min(),
+                )
+            }
+            return ClippingRect(size, offset);
+        }
 
     var scale: Float by mutableStateOf(scale)
 
@@ -39,6 +63,8 @@ class Viewport(
 
     fun rotate(angle: Float){
         this.angle += angle
+        this.scale = (this.scale).coerceIn(minScale, maxScale)
+        center = center.rectLimited()
     }
 
     fun translate(@WindowDimension delta: Offset){
@@ -47,7 +73,7 @@ class Viewport(
 
     val minScale: Float
         get(){
-            val clippingRectSize = clippingRect.size;
+            val clippingRectSize = rotatedClipRect.size.toWindowSize();
             return max(
                 clippingRectSize.width / imageSize.width,
                 clippingRectSize.height / imageSize.height,
@@ -57,23 +83,21 @@ class Viewport(
     val maxScale: Float = 2.5f
 
     fun Offset.rectLimited(): Offset{
-        var (clipSize, clipOffset) = clippingRect;
-        clipSize = clipSize.toViewportSize()
-        clipOffset = clipOffset.toLocalOffset(this)
+        val (clipSize, clipOffset) = rotatedClipRect;
 
         var newX = x
         var newY = y
 
-        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width
-        val leftOverDrag =  clipOffset.x
+        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width/2
+        val leftOverDrag =  imageSize.width/2 + clipOffset.x
         if(leftOverDrag < 0) {
             newX = x + leftOverDrag
         }else if(rightOverDrag > 0){
             newX = x + rightOverDrag
         }
 
-        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height
-        val topOverDrag = clipOffset.y
+        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height/2
+        val topOverDrag = imageSize.height/2 + clipOffset.y
         if(topOverDrag< 0){
             newY = y + topOverDrag
         }else if(bottomOverDrag > 0){
@@ -85,30 +109,29 @@ class Viewport(
 
 
     fun Offset.toViewportOffset(): Offset{
-        return this.minus(windowOffset).run {
+        return /*rotate(-angle)*/this.run {
             Offset(
                 x = x / scale - center.x,
                 y = y / scale - center.y,
-            ).rotate(angle)
+            )
         }
     }
 
     fun Offset.toWindowOffset(): Offset{
-        return rotate(-angle).run {
-            Offset(
+        return Offset(
                 x = (x + center.x) * scale,
                 y = (y + center.y) * scale,
-            )
-        } + windowOffset
+            )/*.rotate(angle)*/
     }
 
-    fun Offset.toLocalOffset(offset: Offset): Offset{
-        return this.minus(windowOffset).run {
+    fun Offset.toLocalOffset(@WindowDimension offset: Offset): Offset{
+        return /*rotate(-angle)*/this.run {
             Offset(
                 x = x / scale - offset.x,
                 y = y / scale - offset.y,
-            ).rotate(angle)
+            )
         }
+
     }
 
     fun Size.toViewportSize(): Size{

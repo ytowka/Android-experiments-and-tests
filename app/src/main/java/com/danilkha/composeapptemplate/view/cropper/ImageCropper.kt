@@ -41,7 +41,7 @@ fun ImageCropper(
 ) {
     val imageBitmap by rememberImageBitmap(image)
 
-    val sensivity = 0.0005f
+    val sensivity = 0.0015f
 
     BoxWithConstraints {
         val windowSize = with(LocalDensity.current) {
@@ -67,10 +67,9 @@ fun ImageCropper(
                 },
         ){
             with(viewport){
-                rotate(degrees = angle/(2 * Math.PI).toFloat()*360, (Offset.Zero + imageSize/2f).toWindowOffset()){
+                rotate(degrees = angle/(2 * Math.PI).toFloat()*360, Offset.Zero.toWindowOffset()){
                     val size = imageSize.toWindowSize().roundToInt()
-                    val offset = Offset.Zero.toWindowOffset().roundToInt()
-                    //rotate(rotate, (offset+(size/2)).toOffset()){
+                    val offset = imageTopLeft.toWindowOffset().roundToInt()
                     imageBitmap?.let {
                         drawImage(
                             image = it.imageBitmap,
@@ -78,13 +77,23 @@ fun ImageCropper(
                             dstSize =  size,
                         )
                     }
-                    //}
-                    with(clippingRect.rect){
-                        drawCircle(color = Color.Blue, radius = 10f, center = topLeft)
-                        drawCircle(color = Color.Blue, radius = 10f, center = topRight)
-                        drawCircle(color = Color.Blue, radius = 10f, center = bottomLeft)
-                        drawCircle(color = Color.Blue, radius = 10f, center = bottomRight)
-                    }
+
+                }
+
+
+                //drawRect(color = Color.Gray, topLeft = imageTopLeft.toWindowOffset(), imageSize)
+                with(clippingRect.rect){
+                    drawCircle(color = Color.Blue, radius = 10f, center = topLeft.toViewportOffset().rotate(-angle).toWindowOffset())
+                    drawCircle(color = Color.Blue, radius = 10f, center = topRight.toViewportOffset().rotate(-angle).toWindowOffset())
+                    drawCircle(color = Color.Blue, radius = 10f, center = bottomLeft.toViewportOffset().rotate(-angle).toWindowOffset())
+                    drawCircle(color = Color.Blue, radius = 10f, center = bottomRight.toViewportOffset().rotate(-angle).toWindowOffset())
+                }
+
+                with(clippingRect.circumscribedRect(angle).rect){
+                    drawCircle(color = Color.Red, radius = 10f, center = topLeft)
+                    drawCircle(color = Color.Red, radius = 10f, center = topRight)
+                    drawCircle(color = Color.Red, radius = 10f, center = bottomLeft)
+                    drawCircle(color = Color.Red, radius = 10f, center = bottomRight)
                 }
             }
             val clippingRect = viewport.clippingRect
