@@ -22,15 +22,13 @@ class Viewport(
 
     @ViewportDimension var center: Offset by mutableStateOf(offset, structuralEqualityPolicy())
 
+    @WindowDimension val windowOffset: Offset
+        get() = Offset(-imageSize.toWindowSize().width/2,
+            -imageSize.toWindowSize().height/2)
+
     var scale: Float by mutableStateOf(scale)
 
     var angle: Float by mutableStateOf(0f)
-
-    val imageTopLeft: Offset
-        get() = Offset(
-            x = -imageSize.width/2,
-            y = -imageSize.height/2,
-        )
 
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
@@ -66,16 +64,16 @@ class Viewport(
         var newX = x
         var newY = y
 
-        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width / 2
-        val leftOverDrag = imageSize.width / 2 + clipOffset.x
+        val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width
+        val leftOverDrag =  clipOffset.x
         if(leftOverDrag < 0) {
             newX = x + leftOverDrag
         }else if(rightOverDrag > 0){
             newX = x + rightOverDrag
         }
 
-        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height / 2
-        val topOverDrag = imageSize.height / 2 + clipOffset.y
+        val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height
+        val topOverDrag = clipOffset.y
         if(topOverDrag< 0){
             newY = y + topOverDrag
         }else if(bottomOverDrag > 0){
@@ -87,10 +85,12 @@ class Viewport(
 
 
     fun Offset.toViewportOffset(): Offset{
-        return Offset(
-            x = x / scale - center.x,
-            y = y / scale - center.y,
-        ).rotate(angle)
+        return this.minus(windowOffset).run {
+            Offset(
+                x = x / scale - center.x,
+                y = y / scale - center.y,
+            ).rotate(angle)
+        }
     }
 
     fun Offset.toWindowOffset(): Offset{
@@ -99,14 +99,16 @@ class Viewport(
                 x = (x + center.x) * scale,
                 y = (y + center.y) * scale,
             )
-        }
+        } + windowOffset
     }
 
     fun Offset.toLocalOffset(offset: Offset): Offset{
-        return Offset(
-            x = x / scale - offset.x,
-            y = y / scale - offset.y
-        ).rotate(angle)
+        return this.minus(windowOffset).run {
+            Offset(
+                x = x / scale - offset.x,
+                y = y / scale - offset.y,
+            ).rotate(angle)
+        }
     }
 
     fun Size.toViewportSize(): Size{

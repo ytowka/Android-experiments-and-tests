@@ -67,9 +67,9 @@ fun ImageCropper(
                 },
         ){
             with(viewport){
-                rotate(degrees = angle/(2 * Math.PI).toFloat()*360){
+                rotate(degrees = angle/(2 * Math.PI).toFloat()*360, (Offset.Zero + imageSize/2f).toWindowOffset()){
                     val size = imageSize.toWindowSize().roundToInt()
-                    val offset = imageTopLeft.toWindowOffset().roundToInt()
+                    val offset = Offset.Zero.toWindowOffset().roundToInt()
                     //rotate(rotate, (offset+(size/2)).toOffset()){
                     imageBitmap?.let {
                         drawImage(
@@ -86,8 +86,6 @@ fun ImageCropper(
                         drawCircle(color = Color.Blue, radius = 10f, center = bottomRight)
                     }
                 }
-
-
             }
             val clippingRect = viewport.clippingRect
             clipRect(
