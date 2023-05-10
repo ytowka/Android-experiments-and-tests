@@ -30,26 +30,6 @@ class Viewport(
             -imageSize.height/2
         )
 
-    val rotatedClipRect: ClippingRect
-        get() {
-            val size = with(clippingRect.size.toViewportSize()){
-                val newWidth = width * cos(angle).absoluteValue + height*sin(angle).absoluteValue
-                val newHeight = height * cos(angle).absoluteValue + width* sin(angle).absoluteValue
-                Size(newWidth, newHeight)
-            }
-            val offset = with(clippingRect.offset.toViewportOffset()){
-                val topLeft = rotate(-angle)
-                val topRight = this.plus(Offset(clippingRect.size.width, 0f)).rotate(-angle)
-                val bottomLeft = this.plus(Offset(0f, clippingRect.size.height)).rotate(-angle)
-                val bottomRight = this.plus(clippingRect.size).rotate(-angle)
-                Offset(
-                    listOf(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x).min(),
-                    listOf(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y).min(),
-                )
-            }
-            return ClippingRect(size, offset);
-        }
-
     var scale: Float by mutableStateOf(scale)
 
     var angle: Float by mutableStateOf(0f)
@@ -73,7 +53,7 @@ class Viewport(
 
     val minScale: Float
         get(){
-            val clippingRectSize = rotatedClipRect.size.toWindowSize();
+            val clippingRectSize = clippingRect.circumscribedRect(-angle).size.toWindowSize();
             return max(
                 clippingRectSize.width / imageSize.width,
                 clippingRectSize.height / imageSize.height,
@@ -83,7 +63,7 @@ class Viewport(
     val maxScale: Float = 2.5f
 
     fun Offset.rectLimited(): Offset{
-        val (clipSize, clipOffset) = rotatedClipRect;
+        var (clipSize, clipOffset) = clippingRect.toLocal(this).circumscribedRect(-angle);
 
         var newX = x
         var newY = y
@@ -147,6 +127,8 @@ class Viewport(
             height = height * scale,
         )
     }
+
+    fun ClippingRect.toLocal(newOffset: Offset): ClippingRect = ClippingRect(size.toViewportSize(), offset.toLocalOffset(newOffset))
 }
 
 @Composable

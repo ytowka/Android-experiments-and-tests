@@ -10,10 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Checkbox
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,8 @@ fun ImageCropper(
     val sensivity = 0.0015f
 
     BoxWithConstraints {
+        var dimension by remember { mutableStateOf(true) }
+
         val windowSize = with(LocalDensity.current) {
             Size(maxWidth.toPx(), maxHeight.toPx())
         }
@@ -66,8 +72,9 @@ fun ImageCropper(
                     }
                 },
         ){
+            if(!dimension) drawRect(color = Color.Black)
             with(viewport){
-                rotate(degrees = angle/(2 * Math.PI).toFloat()*360, Offset.Zero.toWindowOffset()){
+                if(dimension) rotate(degrees = angle/(2 * Math.PI).toFloat()*360, Offset.Zero.toWindowOffset()){
                     val size = imageSize.toWindowSize().roundToInt()
                     val offset = imageTopLeft.toWindowOffset().roundToInt()
                     imageBitmap?.let {
@@ -80,16 +87,24 @@ fun ImageCropper(
 
                 }
 
+                if(!dimension){
+                    drawRect(
+                        color = Color.Gray,
+                        topLeft = imageTopLeft.toWindowOffset(),
+                        size = imageSize
+                    )
+                }
+
 
                 //drawRect(color = Color.Gray, topLeft = imageTopLeft.toWindowOffset(), imageSize)
-                with(clippingRect.rect){
+                if(!dimension) with(clippingRect.rect){
                     drawCircle(color = Color.Blue, radius = 10f, center = topLeft.toViewportOffset().rotate(-angle).toWindowOffset())
                     drawCircle(color = Color.Blue, radius = 10f, center = topRight.toViewportOffset().rotate(-angle).toWindowOffset())
                     drawCircle(color = Color.Blue, radius = 10f, center = bottomLeft.toViewportOffset().rotate(-angle).toWindowOffset())
                     drawCircle(color = Color.Blue, radius = 10f, center = bottomRight.toViewportOffset().rotate(-angle).toWindowOffset())
                 }
 
-                with(clippingRect.circumscribedRect(angle).rect){
+                if(dimension) with(clippingRect.circumscribedRect(angle).rect){
                     drawCircle(color = Color.Red, radius = 10f, center = topLeft)
                     drawCircle(color = Color.Red, radius = 10f, center = topRight)
                     drawCircle(color = Color.Red, radius = 10f, center = bottomLeft)
@@ -97,7 +112,7 @@ fun ImageCropper(
                 }
             }
             val clippingRect = viewport.clippingRect
-            clipRect(
+            if(dimension) clipRect(
                 clippingRect.offset.x,
                 clippingRect.offset.y,
                 clippingRect.offset.x + clippingRect.size.width,
@@ -111,6 +126,13 @@ fun ImageCropper(
 
         }
         ViewportInfo(viewport)
+
+        Checkbox(
+            modifier = Modifier
+                .align(Alignment.TopEnd).padding(16.dp),
+            checked = dimension,
+            onCheckedChange = { dimension = it }
+        )
 
         Spacer(
             modifier = Modifier

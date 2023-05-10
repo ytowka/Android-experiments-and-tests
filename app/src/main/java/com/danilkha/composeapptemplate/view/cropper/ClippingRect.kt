@@ -13,15 +13,6 @@ import kotlin.math.sin
 
 data class ClippingRect(val size: Size, val offset: Offset) {
 
-    val rectCentered: Rect by lazy {
-        Rect(
-            -size.width/2,
-             -size.height/2,
-             size.width/2,
-            size.height/2
-        )
-    }
-
     val rect: Rect by lazy {
         Rect(offset, size)
     }
@@ -33,10 +24,10 @@ data class ClippingRect(val size: Size, val offset: Offset) {
             Size(newWidth, newHeight)
         }
         val newOffset = with(Offset.Zero - size/2f){
-            val topLeft = rotate(-angle)
-            val topRight = this.plus(Offset(size.width, 0f)).rotate(-angle)
-            val bottomLeft = this.plus(Offset(0f, size.height)).rotate(-angle)
-            val bottomRight = this.plus(size).rotate(-angle)
+            val topLeft = rotate(angle)
+            val topRight = this.plus(Offset(size.width, 0f)).rotate(angle)
+            val bottomLeft = this.plus(Offset(0f, size.height)).rotate(angle)
+            val bottomRight = this.plus(size).rotate(angle)
             Offset(
                 listOf(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x).min(),
                 listOf(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y).min(),
