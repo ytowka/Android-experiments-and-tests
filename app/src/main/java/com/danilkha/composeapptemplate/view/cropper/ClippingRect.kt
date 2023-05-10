@@ -18,22 +18,19 @@ data class ClippingRect(val size: Size, val offset: Offset) {
     }
 
     fun circumscribedRect(angle: Float): ClippingRect{
-        val newSize = with(size){
-            val newWidth = width * cos(angle).absoluteValue + height* sin(angle).absoluteValue
-            val newHeight = height * cos(angle).absoluteValue + width* sin(angle).absoluteValue
-            Size(newWidth, newHeight)
-        }
-        val newOffset = with(Offset.Zero - size/2f){
-            val topLeft = rotate(angle)
-            val topRight = this.plus(Offset(size.width, 0f)).rotate(angle)
-            val bottomLeft = this.plus(Offset(0f, size.height)).rotate(angle)
-            val bottomRight = this.plus(size).rotate(angle)
-            Offset(
-                listOf(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x).min(),
-                listOf(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y).min(),
+        val rect = with(offset){
+            val p1 = rotate(angle)
+            val p2 = this.plus(Offset(size.width, 0f)).rotate(angle)
+            val p3 = this.plus(Offset(0f, size.height)).rotate(angle)
+            val p4 = this.plus(size).rotate(angle)
+            Rect(
+                Offset(listOf(p1.x, p2.x, p3.x, p4.x).min(),
+                listOf(p1.y, p2.y, p3.y, p4.y).min(),),
+                Offset(listOf(p1.x, p2.x, p3.x, p4.x).max(),
+                    listOf(p1.y, p2.y, p3.y, p4.y).max(),),
             )
         }
-        return ClippingRect(newSize, offset+newOffset+size/2f);
+        return ClippingRect(rect.size, rect.topLeft);
     }
     companion object{
         fun clippingRect(windowSize: Size, ratio: Float): ClippingRect{
