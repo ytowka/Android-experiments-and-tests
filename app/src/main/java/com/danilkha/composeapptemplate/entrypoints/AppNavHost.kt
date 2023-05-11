@@ -27,20 +27,9 @@ fun AppNavHost() {
         ){
             ImageCropper(
                 image = Uri.decode(it.arguments?.getString("image")) ?: "",
-                onImageSave = { bm, vp ->
-                    bm?.let {
-                        with(vp){
-                            val bitmap = Bitmap.createBitmap(
-                                it,
-                                clippingRect.offset.toViewportOffset().x.roundToInt(),
-                                clippingRect.offset.toViewportOffset().y.roundToInt(),
-                                clippingRect.size.toViewportSize().width.roundToInt(),
-                                clippingRect.size.toViewportSize().height.roundToInt(),
-                            )
-                            image = bitmap
-                            navController.navigate("preview")
-                        }
-                    }
+                onImageSave = {
+                    image = it
+                    navController.navigate("preview")
                 }
             )
         }

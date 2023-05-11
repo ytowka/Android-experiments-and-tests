@@ -25,6 +25,6 @@ data class ClippingRect(val size: Size, val offset: Offset) {
             return ClippingRect(size, offset)
         }
 
-        const val CLIPPING_RECT_PADDING = 150
+        const val CLIPPING_RECT_PADDING = 100
     }
 }

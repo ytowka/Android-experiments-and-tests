@@ -10,7 +10,7 @@ import kotlin.math.max
 class Viewport(
     imageSize: Size,
 
-    offset: Offset = Offset(0f,0f),
+    offset: Offset = Offset.Zero,
     clippingRect: ClippingRect = ClippingRect(Size.Zero, Offset.Zero),
     scale: Float = 1f,
 ) {
@@ -26,13 +26,21 @@ class Viewport(
 
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
-        this.scale = (this.scale * scale).coerceIn(minScale, maxScale)
+        val minScale = minScale
+        this.scale = (this.scale * scale).coerceIn(minScale, minScale*maxScaleCoef)
         val newViewportAnchor = anchor.toViewportOffset()
         offset = (offset - (viewportAnchor - newViewportAnchor)).rectLimited()
     }
 
     fun translate(@WindowDimension delta: Offset){
         offset = (offset + delta / scale).rectLimited()
+    }
+
+    fun bringToCenter(){
+        if(clippingRect.size != Size.Zero && imageSize != Size.Zero){
+            scale = minScale
+            offset = (clippingRect.offset.toViewportOffset() + clippingRect.size.toViewportSize()/2f - imageSize/2f).rectLimited()
+        }
     }
 
     val minScale: Float
@@ -44,9 +52,10 @@ class Viewport(
             )
         }
 
-    val maxScale: Float = 2.5f
+    val maxScaleCoef = 3
 
-    fun Offset.rectLimited(): Offset{
+    @ViewportDimension
+    private fun Offset.rectLimited(): Offset{
         var (clipSize, clipOffset) = clippingRect;
         clipSize = clipSize.toViewportSize()
         clipOffset = clipOffset.toLocalOffset(this)

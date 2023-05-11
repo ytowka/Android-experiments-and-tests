@@ -31,21 +31,24 @@ import kotlin.math.roundToInt
 fun ImageCropper(
     image: String,
     clipRatio: Float = 1.5f,
-    onImageSave: (Bitmap?, Viewport) -> Unit,
+    onImageSave: (Bitmap) -> Unit,
 ) {
     val imageBitmap by rememberImageBitmap(image)
+    val viewport = rememberViewport()
 
     BoxWithConstraints {
-        val windowSize = with(LocalDensity.current) {
-            Size(maxWidth.toPx(), maxHeight.toPx())
-        }
-        val viewport = rememberViewport()
+        val windowSize = with(LocalDensity.current) { Size(maxWidth.toPx(), maxHeight.toPx()) }
 
-        LaunchedEffect(imageBitmap, windowSize){
+        LaunchedEffect(imageBitmap){
             imageBitmap?.let {
                 viewport.imageSize = it.size
             }
+            viewport.bringToCenter()
+        }
+
+        LaunchedEffect(windowSize){
             viewport.clippingRect = ClippingRect.clippingRect(windowSize,clipRatio)
+            viewport.bringToCenter()
         }
 
         Canvas(
@@ -81,25 +84,26 @@ fun ImageCropper(
                 )
             }
         }
-        ViewportInfo(viewport)
+        //ViewportInfo(viewport)
         Button(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp),
             onClick = {
-                onImageSave(imageBitmap?.bitmap, viewport)
-                      },
+                imageBitmap?.bitmap?.let {
+                    onImageSave(viewport.clip(it))
+                }
+            },
             content = {
                 Text("Save")
             }
         )
     }
 }
-
 @Composable
-fun ViewportInfo(viewport: Viewport){
-    with(viewport){
+fun ViewportInfo(viewport: Viewport) {
+    with(viewport) {
         Text(buildString {
             appendLine("clip: ${clippingRect.offset}")
             appendLine()
@@ -110,6 +114,15 @@ fun ViewportInfo(viewport: Viewport){
             appendLine("scale: $scale")
         })
     }
+}
+fun Viewport.clip(bitmap: Bitmap): Bitmap{
+    return Bitmap.createBitmap(
+        bitmap,
+        clippingRect.offset.toViewportOffset().x.roundToInt().coerceAtLeast(0),
+        clippingRect.offset.toViewportOffset().y.roundToInt().coerceAtLeast(0),
+        clippingRect.size.toViewportSize().width.roundToInt(),
+        clippingRect.size.toViewportSize().height.roundToInt(),
+    )
 }
 
 fun Size.roundToInt() = IntSize(width.roundToInt(), height.roundToInt())

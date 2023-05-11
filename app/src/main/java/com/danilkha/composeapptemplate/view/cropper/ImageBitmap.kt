@@ -31,7 +31,6 @@ fun rememberImageBitmap(uri: String): State<SizedImageBitmap?> {
             is SuccessResult -> {
                 val bitmapDrawable = (loaderResult.drawable as BitmapDrawable)
 
-
                 val size = with(bitmapDrawable) {
                     Size(
                         width = bitmap.width.toFloat(),
