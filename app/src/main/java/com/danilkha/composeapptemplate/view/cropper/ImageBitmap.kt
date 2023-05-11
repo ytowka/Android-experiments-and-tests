@@ -41,7 +41,8 @@ fun rememberImageBitmap(uri: String): State<SizedImageBitmap?> {
 
                 rememberedBitmap.value = SizedImageBitmap(
                     bitmapDrawable.bitmap.asImageBitmap(),
-                    size
+                    size,
+                    bitmapDrawable.bitmap
                 )
                 /*bitmapDrawableSize = size
                 storedSize = st.value?.imageToCrop?.size
