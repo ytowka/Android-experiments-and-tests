@@ -1,23 +1,25 @@
 package com.danilkha.composeapptemplate.view.cropper
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Checkbox
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,40 +29,31 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.danilkha.composeapptemplate.ui.theme.Shapes
-import kotlin.math.roundToInt
 
 @Composable
 fun ImageCropper(
-    image: String,
-    clipRatio: Float = 1.5f
+    bitmap: Bitmap,
+    clipRatio: Float = 1.5f,
+    onImageSave: (Offset, Size, angle: Float) -> Unit,
 ) {
-    val imageBitmap by rememberImageBitmap(image)
-
     val sensivity = 0.0015f
 
     BoxWithConstraints {
-        var dimension by remember { mutableStateOf(true) }
 
         val windowSize = with(LocalDensity.current) {
             Size(maxWidth.toPx(), maxHeight.toPx())
         }
-        val viewport = rememberViewport()
-
-        LaunchedEffect(imageBitmap, windowSize){
-            imageBitmap?.let {
-                viewport.imageSize = it.size
-            }
-            viewport.clippingRect = ClippingRect.clippingRect(windowSize,clipRatio)
-        }
+        val viewport = rememberViewport(
+            clippingRect = ClippingRect.clippingRect(windowSize,clipRatio),
+            imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
+        )
 
         Canvas(
             modifier = Modifier
@@ -72,39 +65,20 @@ fun ImageCropper(
                     }
                 },
         ){
-            if(!dimension) drawRect(color = Color.Black)
             with(viewport){
-                if(dimension) rotate(degrees = angle/(2 * Math.PI).toFloat()*360, clippingRect.rect.center){
+                rotate(degrees = angle.toDeg(), clippingRect.rect.center){
                     val size = imageSize.toWindowSize().roundToInt()
                     val offset = imageTopLeft.toWindowOffset().roundToInt()
-                    imageBitmap?.let {
-                        drawImage(
-                            image = it.imageBitmap,
-                            dstOffset = offset,
-                            dstSize =  size,
-                        )
-                    }
+                    drawImage(
+                        image = bitmap.asImageBitmap(),
+                        dstOffset = offset,
+                        dstSize =  size,
+                    )
 
-                }
-
-
-                //drawRect(color = Color.Gray, topLeft = imageTopLeft.toWindowOffset(), imageSize)
-                if(!dimension) with(clippingRect.rect){
-                    drawCircle(color = Color.Blue, radius = 10f, center = topLeft.toViewportOffset().rotate(-angle).toWindowOffset())
-                    drawCircle(color = Color.Blue, radius = 10f, center = topRight.toViewportOffset().rotate(-angle).toWindowOffset())
-                    drawCircle(color = Color.Blue, radius = 10f, center = bottomLeft.toViewportOffset().rotate(-angle).toWindowOffset())
-                    drawCircle(color = Color.Blue, radius = 10f, center = bottomRight.toViewportOffset().rotate(-angle).toWindowOffset())
-                }
-
-                if(dimension) with(clippingRect.circumscribedRect(angle).rect){
-                    drawCircle(color = Color.Red, radius = 10f, center = topLeft)
-                    drawCircle(color = Color.Red, radius = 10f, center = topRight)
-                    drawCircle(color = Color.Red, radius = 10f, center = bottomLeft)
-                    drawCircle(color = Color.Red, radius = 10f, center = bottomRight)
                 }
             }
             val clippingRect = viewport.clippingRect
-            if(dimension) clipRect(
+            clipRect(
                 clippingRect.offset.x,
                 clippingRect.offset.y,
                 clippingRect.offset.x + clippingRect.size.width,
@@ -119,29 +93,39 @@ fun ImageCropper(
         }
         ViewportInfo(viewport)
 
-        Checkbox(
-            modifier = Modifier
-                .align(Alignment.TopEnd).padding(16.dp),
-            checked = dimension,
-            onCheckedChange = { dimension = it }
-        )
-
-        Spacer(
-            modifier = Modifier
-                .clip(Shapes.medium)
-                .padding(16.dp)
-                .height(40.dp)
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(colors = listOf(Color.Gray, Color.LightGray), tileMode = TileMode.Mirror)
-                )
-                .pointerInput(Unit){
-                    detectHorizontalDragGestures { change, dragAmount ->
-                         viewport.rotate(dragAmount*sensivity)
+        Row(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Spacer(
+                modifier = Modifier
+                    .clip(Shapes.medium)
+                    .padding(16.dp)
+                    .height(40.dp)
+                    .weight(1f)
+                    .background(
+                        brush = Brush.horizontalGradient(colors = listOf(Color.Gray, Color.LightGray), tileMode = TileMode.Mirror)
+                    )
+                    .pointerInput(Unit){
+                        detectHorizontalDragGestures { change, dragAmount ->
+                            viewport.rotate(dragAmount*sensivity)
+                        }
                     }
+            )
+            FloatingActionButton(
+                onClick = {
+                    with(viewport){
+                        onImageSave(
+                            clippingRect.offset.toViewportOffset()+imageSize/2f,
+                            clippingRect.size.toViewportSize(),
+                            angle.toDeg()
+                        )
+                    }
+                },
+                content = {
+                    Icon(Icons.Default.Check, null)
                 }
-        )
+            )
+        }
     }
 }
 
@@ -161,9 +145,3 @@ fun ViewportInfo(viewport: Viewport){
         }, color = Color.White)
     }
 }
-
-fun Size.roundToInt() = IntSize(width.roundToInt(), height.roundToInt())
-
-operator fun IntOffset.plus(intSize: IntSize) = IntOffset(x+intSize.width, y + intSize.height)
-//operator fun Size.div(f: Float) = Size(width/f, height/f)
-fun Offset.roundToInt() = IntOffset(x.roundToInt(), y.roundToInt())

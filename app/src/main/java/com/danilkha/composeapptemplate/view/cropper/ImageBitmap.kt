@@ -1,5 +1,6 @@
 package com.danilkha.composeapptemplate.view.cropper
 
+import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.compose.runtime.*
@@ -14,8 +15,8 @@ import coil.request.SuccessResult
 import coil.size.Precision
 
 @Composable
-fun rememberImageBitmap(uri: String): State<SizedImageBitmap?> {
-    val rememberedBitmap = remember(uri){ mutableStateOf<SizedImageBitmap?>(null) }
+fun rememberImageBitmap(uri: String): State<Bitmap?> {
+    val rememberedBitmap = remember(uri){ mutableStateOf<Bitmap?>(null) }
 
     val request = ImageRequest.Builder(LocalContext.current)
         .data(uri)
@@ -30,23 +31,7 @@ fun rememberImageBitmap(uri: String): State<SizedImageBitmap?> {
             }
             is SuccessResult -> {
                 val bitmapDrawable = (loaderResult.drawable as BitmapDrawable)
-
-                val size = with(bitmapDrawable) {
-                    Size(
-                        width = bitmap.width.toFloat(),
-                        height = bitmap.height.toFloat(),
-                    )
-                }
-
-                rememberedBitmap.value = SizedImageBitmap(
-                    bitmapDrawable.bitmap.asImageBitmap(),
-                    size,
-                    bitmapDrawable.bitmap
-                )
-                /*bitmapDrawableSize = size
-                storedSize = st.value?.imageToCrop?.size
-                dataSource = loaderResult.dataSource
-                isSampled = loaderResult.isSampled*/
+                rememberedBitmap.value = bitmapDrawable.bitmap
             }
         }
     }

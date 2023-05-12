@@ -137,8 +137,24 @@ class Viewport(
 }
 
 @Composable
-fun rememberViewport(): Viewport{
-    val viewport = remember { Viewport(imageSize = Size.Zero,) }
+fun rememberViewport(clippingRect: ClippingRect, imageSize: Size): Viewport {
+    val viewport = remember {
+        Viewport(
+            imageSize = imageSize,
+            clippingRect = clippingRect
+        )
+    }
+    LaunchedEffect(Unit){
+        viewport.bringToCenter()
+    }
+
+    LaunchedEffect(imageSize){
+        viewport.imageSize = imageSize;
+    }
+
+    LaunchedEffect(clippingRect){
+        viewport.clippingRect = clippingRect;
+    }
     return viewport
 }
 
