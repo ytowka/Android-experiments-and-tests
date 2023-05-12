@@ -74,7 +74,7 @@ fun ImageCropper(
         ){
             if(!dimension) drawRect(color = Color.Black)
             with(viewport){
-                if(dimension) rotate(degrees = angle/(2 * Math.PI).toFloat()*360, Offset.Zero.toWindowOffset()){
+                if(dimension) rotate(degrees = angle/(2 * Math.PI).toFloat()*360, clippingRect.rect.center){
                     val size = imageSize.toWindowSize().roundToInt()
                     val offset = imageTopLeft.toWindowOffset().roundToInt()
                     imageBitmap?.let {

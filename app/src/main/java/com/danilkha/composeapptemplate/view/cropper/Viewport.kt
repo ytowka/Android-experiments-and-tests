@@ -48,7 +48,7 @@ class Viewport(
     }
 
     fun translate(@WindowDimension delta: Offset){
-        center = (center + delta / scale).rectLimited()
+        center = (center + delta.rotate(-angle) / scale).rectLimited()
     }
 
     val minScale: Float
@@ -148,9 +148,11 @@ operator fun Offset.minus(size: Size): Offset{
     return Offset(x - size.width, y - size.height)
 }
 
-fun Offset.rotate(/*rad*/ angle: Float): Offset = Offset(
-    x = x * cos(angle) - y * sin(angle),
-    y = x * sin(angle) + y * cos(angle),
-)
+fun Offset.rotate(/*rad*/ angle: Float, pivot: Offset = Offset.Zero): Offset = (this - pivot).run {
+    Offset(
+        x = x * cos(angle) - y * sin(angle),
+        y = x * sin(angle) + y * cos(angle),
+    )
+} + pivot
 annotation class WindowDimension
 annotation class ViewportDimension

@@ -17,12 +17,13 @@ data class ClippingRect(val size: Size, val offset: Offset) {
         Rect(offset, size)
     }
 
+
     fun circumscribedRect(angle: Float): ClippingRect{
         val rect = with(offset){
-            val p1 = rotate(angle)
-            val p2 = this.plus(Offset(size.width, 0f)).rotate(angle)
-            val p3 = this.plus(Offset(0f, size.height)).rotate(angle)
-            val p4 = this.plus(size).rotate(angle)
+            val p1 = rotate(angle, rect.center)
+            val p2 = this.plus(Offset(size.width, 0f)).rotate(angle, rect.center)
+            val p3 = this.plus(Offset(0f, size.height)).rotate(angle, rect.center)
+            val p4 = this.plus(size).rotate(angle, rect.center)
             Rect(
                 Offset(listOf(p1.x, p2.x, p3.x, p4.x).min(),
                 listOf(p1.y, p2.y, p3.y, p4.y).min(),),
