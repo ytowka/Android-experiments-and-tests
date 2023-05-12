@@ -87,14 +87,6 @@ fun ImageCropper(
 
                 }
 
-                if(!dimension){
-                    drawRect(
-                        color = Color.Gray,
-                        topLeft = imageTopLeft.toWindowOffset(),
-                        size = imageSize
-                    )
-                }
-
 
                 //drawRect(color = Color.Gray, topLeft = imageTopLeft.toWindowOffset(), imageSize)
                 if(!dimension) with(clippingRect.rect){

@@ -13,7 +13,7 @@ import kotlin.math.sin
 class Viewport(
     imageSize: Size,
 
-    offset: Offset = Offset(0f,0f),
+    offset: Offset = Offset.Zero,
     clippingRect: ClippingRect = ClippingRect(Size.Zero, Offset.Zero),
     scale: Float = 1f,
 ) {
@@ -36,19 +36,27 @@ class Viewport(
 
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
-        this.scale = (this.scale * scale).coerceIn(minScale, maxScale)
+        val minScale = minScale
+        this.scale = (this.scale * scale).coerceIn(minScale, minScale*maxScaleCoef)
         val newViewportAnchor = anchor.toViewportOffset()
         center = (center - (viewportAnchor - newViewportAnchor)).rectLimited()
     }
 
     fun rotate(angle: Float){
         this.angle += angle
-        this.scale = (this.scale).coerceIn(minScale, maxScale)
+        this.scale = (this.scale).coerceIn(minScale, minScale*maxScaleCoef)
         center = center.rectLimited()
     }
 
     fun translate(@WindowDimension delta: Offset){
         center = (center + delta.rotate(-angle) / scale).rectLimited()
+    }
+
+    fun bringToCenter(){
+        if(clippingRect.size != Size.Zero && imageSize != Size.Zero){
+            scale = minScale
+            center = (clippingRect.offset.toViewportOffset() + clippingRect.size.toViewportSize()/2f - imageSize/2f).rectLimited()
+        }
     }
 
     val minScale: Float
@@ -60,8 +68,9 @@ class Viewport(
             )
         }
 
-    val maxScale: Float = 2.5f
+    val maxScaleCoef = 3
 
+    @ViewportDimension
     fun Offset.rectLimited(): Offset{
         var (clipSize, clipOffset) = clippingRect.toLocal(this).circumscribedRect(-angle);
 
@@ -89,12 +98,10 @@ class Viewport(
 
 
     fun Offset.toViewportOffset(): Offset{
-        return /*rotate(-angle)*/this.run {
-            Offset(
-                x = x / scale - center.x,
-                y = y / scale - center.y,
-            )
-        }
+        return Offset(
+            x = x / scale - center.x,
+            y = y / scale - center.y,
+        )
     }
 
     fun Offset.toWindowOffset(): Offset{
@@ -105,12 +112,10 @@ class Viewport(
     }
 
     fun Offset.toLocalOffset(@WindowDimension offset: Offset): Offset{
-        return /*rotate(-angle)*/this.run {
-            Offset(
-                x = x / scale - offset.x,
-                y = y / scale - offset.y,
-            )
-        }
+        return Offset(
+            x = x / scale - offset.x,
+            y = y / scale - offset.y,
+        )
 
     }
 
@@ -136,23 +141,6 @@ fun rememberViewport(): Viewport{
     val viewport = remember { Viewport(imageSize = Size.Zero,) }
     return viewport
 }
-operator fun Size.plus(size: Size): Size {
-    return Size(width + size.width, height + size.height)
-}
 
-operator fun Offset.plus(size: Size): Offset{
-    return Offset(x + size.width, y + size.height)
-}
-
-operator fun Offset.minus(size: Size): Offset{
-    return Offset(x - size.width, y - size.height)
-}
-
-fun Offset.rotate(/*rad*/ angle: Float, pivot: Offset = Offset.Zero): Offset = (this - pivot).run {
-    Offset(
-        x = x * cos(angle) - y * sin(angle),
-        y = x * sin(angle) + y * cos(angle),
-    )
-} + pivot
 annotation class WindowDimension
 annotation class ViewportDimension
