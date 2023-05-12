@@ -53,7 +53,7 @@ class Viewport(
 
     val minScale: Float
         get(){
-            val clippingRectSize = clippingRect.circumscribedRect(-angle).size.toWindowSize();
+            val clippingRectSize = clippingRect.circumscribedRect(-angle).size;
             return max(
                 clippingRectSize.width / imageSize.width,
                 clippingRectSize.height / imageSize.height,
