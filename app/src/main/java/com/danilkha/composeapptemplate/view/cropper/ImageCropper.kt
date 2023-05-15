@@ -55,7 +55,7 @@ fun ImageCropper(
     bitmap: Bitmap,
     clipRatio: Float = 1.5f,
     onImageSave: (cropRect: Rect, angle: Float) -> Unit,
-    rotation: Boolean = false,
+    rotation: Boolean = true,
     preferredAngle: Float = 0f,
 ) {
     val sensivity = 0.0015f
@@ -158,7 +158,7 @@ fun BoxScope.Controls(
                         )
                         .pointerInput(Unit){
                             detectHorizontalDragGestures { change, dragAmount ->
-                                onRotate(dragAmount)
+                                onRotate(-dragAmount)
                             }
                         }
                 )

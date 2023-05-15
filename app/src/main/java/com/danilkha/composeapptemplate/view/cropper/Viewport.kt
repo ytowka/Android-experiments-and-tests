@@ -66,11 +66,14 @@ class Viewport(
         val minScale = minScale
         this.scale = (this.scale * scale).coerceIn(minScale, maxScale)
         val newViewportAnchor = anchor.toViewportOffset()
+        lastScale = null
         center = (center - (viewportAnchor - newViewportAnchor)).rectLimited()
     }
 
 
     fun rotate(angle: Float){
+        val clippingRectCenter = clippingRect.rect.center
+        val viewportAnchor = clippingRectCenter.toViewportOffset()
         this.angle = (this.angle + angle) % (2 * Math.PI).toFloat()
         val lastScale = this.lastScale
         val newScale = if(lastScale != null){
@@ -80,7 +83,8 @@ class Viewport(
             scale
         }.coerceIn(minScale, maxScale)
         this.scale = newScale
-        center = center.rectLimited()
+        val newViewportAnchor = clippingRectCenter.toViewportOffset()
+        center = (center - (viewportAnchor - newViewportAnchor)).rectLimited()
     }
 
     fun setRotate(angle: Float){
@@ -91,11 +95,13 @@ class Viewport(
 
     fun translate(@WindowDimension delta: Offset){
         center = (center + delta.rotate(-angle) / scale).rectLimited()
+        lastScale = null
     }
 
     fun bringToCenter(){
         angle = 0f
         scale = minScale
+        lastScale = null
         center = clippingRect.toLocal(Offset.Zero).run { offset + size/2f }.rectLimited()
     }
 
