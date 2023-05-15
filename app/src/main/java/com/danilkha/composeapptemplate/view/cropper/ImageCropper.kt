@@ -3,6 +3,7 @@ package com.danilkha.composeapptemplate.view.cropper
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -89,13 +90,58 @@ fun ImageCropper(
                     color = Color.Black.copy(alpha = 0.6f),
                 )
             }
+            with(viewport){
+                drawLine(
+                    color = Color.Red,
+                    start = clippingRect.rect.center.toViewportOffset().let{
+                        (-it).rotate(angle) + it
+                    }.toWindowOffset(),
+                    end = clippingRect.rect.center
+                   ,
+                    strokeWidth = 5f,
+                )
 
+                val viewPortTopLeft = clippingRect.toLocal(center).rect.center.let{
+                    (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
+                }
+
+                val clippingRectTopLeft = clippingRect.rect.topLeft.toViewportOffset()
+
+                drawLine(
+                    color = Color.Blue,
+                    start = viewPortTopLeft.toWindowOffset(),
+                    end = clippingRectTopLeft.toWindowOffset(),
+                    strokeWidth = 5f,
+                )
+
+                drawLine(
+                    color = Color.Green,
+                    start = imageTopLeft.toWindowOffset(),
+                    end = clippingRectTopLeft.toWindowOffset(),
+                    strokeWidth = 5f,
+                )
+
+                drawLine(
+                    color = Color.Green,
+                    start = Offset.Zero,
+                    end = (clippingRectTopLeft - viewPortTopLeft - center).toWindowOffset(),
+                    strokeWidth = 5f,
+                )
+            }
         }
         ViewportInfo(viewport)
 
         Row(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
+            Text(
+                modifier = Modifier
+                    .clickable {
+                        viewport.rotate((Math.PI/2).toFloat())
+                    }
+                    .padding(8.dp),
+                text = "90",
+            )
             Spacer(
                 modifier = Modifier
                     .clip(Shapes.medium)
@@ -114,8 +160,13 @@ fun ImageCropper(
             FloatingActionButton(
                 onClick = {
                     with(viewport){
+                        val viewPortTopLeft = clippingRect.toLocal(center).rect.center.let{
+                            (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
+                        }
+
+                        val clippingRectTopLeft = clippingRect.rect.topLeft.toViewportOffset()
                         onImageSave(
-                            clippingRect.offset.toViewportOffset()+imageSize/2f,
+                            clippingRectTopLeft - viewPortTopLeft,
                             clippingRect.size.toViewportSize(),
                             angle.toDeg()
                         )
@@ -136,12 +187,12 @@ fun ViewportInfo(viewport: Viewport){
             appendLine("clip ${clippingRect.offset}, image $imageSize")
             appendLine()
             appendLine("viewport clip: ${clippingRect.offset.toViewportOffset()}")
-            appendLine("viewport clip br: ${(clippingRect.offset + clippingRect.size).toViewportOffset() - imageSize} ")
-            appendLine()
-            appendLine("offset: $center")
+            //appendLine("viewport clip br: ${(clippingRect.offset + clippingRect.size).toViewportOffset() - imageSize} ")
+            //appendLine()
+            //appendLine("offset: $center")
             appendLine("scale: $scale")
-            appendLine()
             appendLine("rotate: ${angle/(2 * Math.PI) * 360}")
+            appendLine()
         }, color = Color.White)
     }
 }

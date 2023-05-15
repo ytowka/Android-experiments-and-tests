@@ -34,3 +34,9 @@ operator fun IntOffset.plus(intSize: IntSize) = IntOffset(x+intSize.width, y + i
 fun Offset.roundToInt() = IntOffset(x.roundToInt(), y.roundToInt())
 
 fun Float.toDeg() = this/(2 * Math.PI).toFloat()*360
+
+fun Float.toRad() = this/360f*(2 * Math.PI).toFloat()
+
+operator fun Size.div(div: Float) = Size(width/div, height/div)
+
+fun Size.asOffset(): Offset = Offset(width, height)

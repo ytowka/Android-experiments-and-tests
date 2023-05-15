@@ -3,24 +3,28 @@ package com.danilkha.composeapptemplate.entrypoints
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.core.graphics.createBitmap
-import androidx.navigation.NavType
-import androidx.navigation.Navigator
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.danilkha.composeapptemplate.view.cropper.ImageCropper
+import com.danilkha.composeapptemplate.view.cropper.asOffset
+import com.danilkha.composeapptemplate.view.cropper.minus
+import com.danilkha.composeapptemplate.view.cropper.plus
 import com.danilkha.composeapptemplate.view.cropper.rememberImageBitmap
+import com.danilkha.composeapptemplate.view.cropper.rotate
 import com.danilkha.composeapptemplate.view.cropper.roundToInt
+import com.danilkha.composeapptemplate.view.cropper.toRad
 import com.danilkha.composeapptemplate.view.preview.ImagePreview
 import com.danilkha.composeapptemplate.view.start.StartScreen
-import kotlin.math.roundToInt
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun AppNavHost() {
@@ -38,7 +42,7 @@ fun AppNavHost() {
                 ImageCropper(
                     bitmap = it,
                     onImageSave = { offset, size, angle ->
-                        bitmap = crop(offset.roundToInt(), size.roundToInt(), angle, it)
+                        bitmap = crop(offset, size, angle, it)
                         navController.navigate("preview")
                     }
                 )
@@ -56,18 +60,32 @@ fun AppNavHost() {
         }
     }
 }
-fun crop(offset: IntOffset, size: IntSize, angle: Float, bitmap: Bitmap): Bitmap{
-    val matrix = Matrix();
-    matrix.postRotate(angle)
+fun crop(offset: Offset, size: Size, angle: Float, bitmap: Bitmap): Bitmap{
+    val matrix = Matrix().apply {
+        postRotate(angle)
+    };
     val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+
+    val intOffset = (offset).roundToInt()
+    val intSize = size.roundToInt()
+
+    Log.d(
+        "debugg",
+        "crop() called with: offset = $offset, size = $size, angle = $angle, bitmap = ${bitmap.sizeInfo()}, rotated = ${rotated.sizeInfo()}, native: ${offset}, rotated: ${intOffset}"
+    )
 
     val croppedBitmap = Bitmap.createBitmap(
         rotated,
-        offset.x,
-        offset.y,
-        size.width,
-        size.height,
+        intOffset.x,
+        intOffset.y,
+        intSize.width,
+        intSize.height,
     )
 
     return croppedBitmap
 }
+
+fun Bitmap.rect() = Rect(0f,0f, width.toFloat(), height.toFloat())
+
+val Bitmap.size get() = Size(width.toFloat(), height.toFloat())
+fun Bitmap.sizeInfo() = "($width, $height)"

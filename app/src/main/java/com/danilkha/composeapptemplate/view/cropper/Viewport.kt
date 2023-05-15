@@ -72,28 +72,18 @@ class Viewport(
 
     @ViewportDimension
     fun Offset.rectLimited(): Offset{
-        var (clipSize, clipOffset) = clippingRect.toLocal(this).circumscribedRect(-angle);
-
-        var newX = x
-        var newY = y
+        val (clipSize, clipOffset) = clippingRect.toLocal(this).circumscribedRect(-angle);
 
         val rightOverDrag = clipOffset.x + clipSize.width - imageSize.width/2
         val leftOverDrag =  imageSize.width/2 + clipOffset.x
-        if(leftOverDrag < 0) {
-            newX = x + leftOverDrag
-        }else if(rightOverDrag > 0){
-            newX = x + rightOverDrag
-        }
 
         val bottomOverDrag = clipOffset.y + clipSize.height - imageSize.height/2
         val topOverDrag = imageSize.height/2 + clipOffset.y
-        if(topOverDrag< 0){
-            newY = y + topOverDrag
-        }else if(bottomOverDrag > 0){
-            newY = y + bottomOverDrag
-        }
 
-        return Offset(newX, newY)
+        return Offset(
+            x.coerceAtLeast( x + rightOverDrag).coerceAtMost(x + leftOverDrag),
+            y.coerceAtLeast(y + bottomOverDrag).coerceAtMost(y + topOverDrag)
+        )
     }
 
 
@@ -108,7 +98,7 @@ class Viewport(
         return Offset(
                 x = (x + center.x) * scale,
                 y = (y + center.y) * scale,
-            )/*.rotate(angle)*/
+            )
     }
 
     fun Offset.toLocalOffset(@WindowDimension offset: Offset): Offset{
