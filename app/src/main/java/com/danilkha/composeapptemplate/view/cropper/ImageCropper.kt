@@ -2,10 +2,14 @@ package com.danilkha.composeapptemplate.view.cropper
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
@@ -21,30 +26,40 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.danilkha.composeapptemplate.R
+import com.danilkha.composeapptemplate.ui.TextButton
 import com.danilkha.composeapptemplate.ui.theme.Shapes
 
 @Composable
 fun ImageCropper(
     bitmap: Bitmap,
     clipRatio: Float = 1.5f,
-    onImageSave: (Offset, Size, angle: Float) -> Unit,
+    onImageSave: (cropRect: Rect, angle: Float) -> Unit,
+    rotation: Boolean = false,
+    preferredAngle: Float = 0f,
 ) {
     val sensivity = 0.0015f
+    val clipColor = MaterialTheme.colors.background
 
     BoxWithConstraints {
 
@@ -55,6 +70,10 @@ fun ImageCropper(
             clippingRect = ClippingRect.clippingRect(windowSize,clipRatio),
             imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
         )
+
+        LaunchedEffect(preferredAngle){
+            viewport.setRotate(preferredAngle)
+        }
 
         Canvas(
             modifier = Modifier
@@ -87,103 +106,134 @@ fun ImageCropper(
                 clipOp = ClipOp.Difference
             ) {
                 drawRect(
-                    color = Color.Black.copy(alpha = 0.6f),
-                )
-            }
-            with(viewport){
-                drawLine(
-                    color = Color.Red,
-                    start = clippingRect.rect.center.toViewportOffset().let{
-                        (-it).rotate(angle) + it
-                    }.toWindowOffset(),
-                    end = clippingRect.rect.center
-                   ,
-                    strokeWidth = 5f,
-                )
-
-                val viewPortTopLeft = clippingRect.toLocal(center).rect.center.let{
-                    (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
-                }
-
-                val clippingRectTopLeft = clippingRect.rect.topLeft.toViewportOffset()
-
-                drawLine(
-                    color = Color.Blue,
-                    start = viewPortTopLeft.toWindowOffset(),
-                    end = clippingRectTopLeft.toWindowOffset(),
-                    strokeWidth = 5f,
-                )
-
-                drawLine(
-                    color = Color.Green,
-                    start = imageTopLeft.toWindowOffset(),
-                    end = clippingRectTopLeft.toWindowOffset(),
-                    strokeWidth = 5f,
-                )
-
-                drawLine(
-                    color = Color.Green,
-                    start = Offset.Zero,
-                    end = (clippingRectTopLeft - viewPortTopLeft - center).toWindowOffset(),
-                    strokeWidth = 5f,
+                    color = clipColor.copy(alpha = 0.7f),
                 )
             }
         }
-        ViewportInfo(viewport)
+        Controls(
+            rotation = rotation,
+            onSave = {
+                with(viewport){
+                    onImageSave(getCropArea(), angle.toDeg(),)
+                }
+            },
+            onReset = {
+                viewport.bringToCenter()
+            },
+            onRotate = {
+                viewport.rotate(it*sensivity)
+            },
+            onRotate90 = {
+                viewport.rotate(-Math.PI.toFloat()/2)
+            }
+        )
+    }
+}
 
-        Row(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            Text(
+@Composable
+fun BoxScope.Controls(
+    rotation: Boolean,
+    onSave: () -> Unit,
+    onReset: () -> Unit,
+    onRotate: (Float) -> Unit,
+    onRotate90: () -> Unit,
+){
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .align(Alignment.BottomCenter),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if(rotation){
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .height(40.dp)
+                        .weight(1f)
+                        .background(
+                            brush = Brush.horizontalGradient(colors = listOf(Color.Gray, Color.LightGray), tileMode = TileMode.Mirror)
+                        )
+                        .pointerInput(Unit){
+                            detectHorizontalDragGestures { change, dragAmount ->
+                                onRotate(dragAmount)
+                            }
+                        }
+                )
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxWidth()){
+            TextButton(
+                modifier = Modifier.align(Alignment.CenterStart),
+                text = "reset",
+                onClick = onReset,
+                color = Color.Gray,
+            )
+            Image(
                 modifier = Modifier
                     .clickable {
-                        viewport.rotate((Math.PI/2).toFloat())
+                        onRotate90()
                     }
-                    .padding(8.dp),
-                text = "90",
+                    .padding(8.dp)
+                    .align(alignment = Alignment.Center)
+                ,
+                painter = painterResource(R.drawable.baseline_rotate_90_degrees_ccw_24),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(color = MaterialTheme.colors.primary),
             )
-            Spacer(
-                modifier = Modifier
-                    .clip(Shapes.medium)
-                    .padding(16.dp)
-                    .height(40.dp)
-                    .weight(1f)
-                    .background(
-                        brush = Brush.horizontalGradient(colors = listOf(Color.Gray, Color.LightGray), tileMode = TileMode.Mirror)
-                    )
-                    .pointerInput(Unit){
-                        detectHorizontalDragGestures { change, dragAmount ->
-                            viewport.rotate(dragAmount*sensivity)
-                        }
-                    }
-            )
-            FloatingActionButton(
-                onClick = {
-                    with(viewport){
-                        val viewPortTopLeft = clippingRect.toLocal(center).rect.center.let{
-                            (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
-                        }
-
-                        val clippingRectTopLeft = clippingRect.rect.topLeft.toViewportOffset()
-                        onImageSave(
-                            clippingRectTopLeft - viewPortTopLeft,
-                            clippingRect.size.toViewportSize(),
-                            angle.toDeg()
-                        )
-                    }
-                },
-                content = {
-                    Icon(Icons.Default.Check, null)
-                }
+            TextButton(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                text = "crop",
+                onClick = onSave,
             )
         }
+    }
+}
+
+fun DrawScope.OffsetHints(viewport: Viewport){
+    with(viewport){
+        drawLine(
+            color = Color.Red,
+            start = clippingRect.rect.center.toViewportOffset().let{
+                (-it).rotate(angle) + it
+            }.toWindowOffset(),
+            end = clippingRect.rect.center
+            ,
+            strokeWidth = 5f,
+        )
+
+        val clippingRectTopLeft = clippingRect.rect.topLeft.toViewportOffset()
+
+        drawLine(
+            color = Color.Blue,
+            start = imageTopLeft.toWindowOffset(),
+            end = clippingRectTopLeft.toWindowOffset(),
+            strokeWidth = 5f,
+        )
+
+        drawLine(
+            color = Color.Green,
+            start = imageTopLeft.toWindowOffset(),
+            end = clippingRectTopLeft.toWindowOffset(),
+            strokeWidth = 5f,
+        )
+
+        drawLine(
+            color = Color.Green,
+            start = Offset.Zero,
+            end = (clippingRect.offset - rotatedImageTopLeft - center).toWindowOffset() ,
+            strokeWidth = 5f,
+        )
     }
 }
 
 @Composable
 fun ViewportInfo(viewport: Viewport){
     with(viewport){
-        Text(buildString {
+        Text(text = buildString {
             appendLine("clip ${clippingRect.offset}, image $imageSize")
             appendLine()
             appendLine("viewport clip: ${clippingRect.offset.toViewportOffset()}")

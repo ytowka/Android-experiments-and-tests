@@ -41,8 +41,8 @@ fun AppNavHost() {
             imageBitmap?.let {
                 ImageCropper(
                     bitmap = it,
-                    onImageSave = { offset, size, angle ->
-                        bitmap = crop(offset, size, angle, it)
+                    onImageSave = { rect, angle ->
+                        bitmap = crop(rect.topLeft, rect.size, angle, it)
                         navController.navigate("preview")
                     }
                 )
@@ -69,11 +69,6 @@ fun crop(offset: Offset, size: Size, angle: Float, bitmap: Bitmap): Bitmap{
     val intOffset = (offset).roundToInt()
     val intSize = size.roundToInt()
 
-    Log.d(
-        "debugg",
-        "crop() called with: offset = $offset, size = $size, angle = $angle, bitmap = ${bitmap.sizeInfo()}, rotated = ${rotated.sizeInfo()}, native: ${offset}, rotated: ${intOffset}"
-    )
-
     val croppedBitmap = Bitmap.createBitmap(
         rotated,
         intOffset.x,
@@ -84,8 +79,3 @@ fun crop(offset: Offset, size: Size, angle: Float, bitmap: Bitmap): Bitmap{
 
     return croppedBitmap
 }
-
-fun Bitmap.rect() = Rect(0f,0f, width.toFloat(), height.toFloat())
-
-val Bitmap.size get() = Size(width.toFloat(), height.toFloat())
-fun Bitmap.sizeInfo() = "($width, $height)"

@@ -2,6 +2,7 @@ package com.danilkha.composeapptemplate.view.cropper
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import kotlin.math.absoluteValue
 import kotlin.math.cos
@@ -16,6 +17,7 @@ class Viewport(
     offset: Offset = Offset.Zero,
     clippingRect: ClippingRect = ClippingRect(Size.Zero, Offset.Zero),
     scale: Float = 1f,
+    val maxScaleCoef: Float = 3f
 ) {
 
     @WindowDimension var clippingRect: ClippingRect by mutableStateOf(clippingRect, structuralEqualityPolicy())
@@ -24,11 +26,36 @@ class Viewport(
 
     @ViewportDimension var center: Offset by mutableStateOf(offset, structuralEqualityPolicy())
 
+    private var lastScale: Float? = null
+
     @WindowDimension val imageTopLeft
         get() = Offset(
             -imageSize.width/2,
             -imageSize.height/2
         )
+
+    @WindowDimension val rotatedImageTopLeft: Offset
+        get() {
+            return clippingRect.rect.center.toViewportOffset().let{
+                (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
+            }
+        }
+    fun getCropArea(): Rect {
+        val offset = clippingRect.offset.toViewportOffset() - rotatedImageTopLeft
+        val size = clippingRect.size.toViewportSize();
+
+        return Rect(offset, size)
+    }
+
+    @WindowDimension val clipOffset: Offset
+        get() {
+            val viewportRotatedTopLeft = clippingRect.rect.center.toViewportOffset().let{
+                (-it).rotate(angle) + it - ClippingRect(imageSize, Offset.Zero).circumscribedRect(angle).size/2f
+            }
+
+            val clippingRectTopLeft = clippingRect.offset.toViewportOffset()
+            return clippingRectTopLeft - viewportRotatedTopLeft
+        }
 
     var scale: Float by mutableStateOf(scale)
 
@@ -37,14 +64,28 @@ class Viewport(
     fun zoom(scale: Float, @WindowDimension anchor: Offset){
         val viewportAnchor = anchor.toViewportOffset()
         val minScale = minScale
-        this.scale = (this.scale * scale).coerceIn(minScale, minScale*maxScaleCoef)
+        this.scale = (this.scale * scale).coerceIn(minScale, maxScale)
         val newViewportAnchor = anchor.toViewportOffset()
         center = (center - (viewportAnchor - newViewportAnchor)).rectLimited()
     }
 
+
     fun rotate(angle: Float){
-        this.angle += angle
-        this.scale = (this.scale).coerceIn(minScale, minScale*maxScaleCoef)
+        this.angle = (this.angle + angle) % (2 * Math.PI).toFloat()
+        val lastScale = this.lastScale
+        val newScale = if(lastScale != null){
+            lastScale
+        }else{
+            this.lastScale = scale
+            scale
+        }.coerceIn(minScale, maxScale)
+        this.scale = newScale
+        center = center.rectLimited()
+    }
+
+    fun setRotate(angle: Float){
+        this.angle = angle % (2 * Math.PI).toFloat()
+        this.scale = minScale
         center = center.rectLimited()
     }
 
@@ -53,10 +94,9 @@ class Viewport(
     }
 
     fun bringToCenter(){
-        if(clippingRect.size != Size.Zero && imageSize != Size.Zero){
-            scale = minScale
-            center = (clippingRect.offset.toViewportOffset() + clippingRect.size.toViewportSize()/2f - imageSize/2f).rectLimited()
-        }
+        angle = 0f
+        scale = minScale
+        center = clippingRect.toLocal(Offset.Zero).run { offset + size/2f }.rectLimited()
     }
 
     val minScale: Float
@@ -68,7 +108,14 @@ class Viewport(
             )
         }
 
-    val maxScaleCoef = 3
+    val maxScale: Float
+        get() {
+            val clippingRectSize = clippingRect.size
+            return max(
+                clippingRectSize.width / imageSize.width,
+                clippingRectSize.height / imageSize.height,
+            ) * maxScaleCoef
+        }
 
     @ViewportDimension
     fun Offset.rectLimited(): Offset{
